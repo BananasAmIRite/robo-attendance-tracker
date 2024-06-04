@@ -17,11 +17,7 @@ public class GoogleSheetsQueryPackage implements ReactPackage {
   @Override
   public List<NativeModule> createNativeModules(@NonNull ReactApplicationContext reactContext) {
     List<NativeModule> modules = new ArrayList<>();
-    try {
       modules.add(new GoogleSheetsQueryModule(reactContext));
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
     return modules;
   }
 

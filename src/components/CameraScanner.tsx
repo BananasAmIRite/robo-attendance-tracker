@@ -1,7 +1,8 @@
 import { BarcodeScanningResult, Camera, CameraView, useCameraPermissions } from 'expo-camera';
+import React from 'react';
 import { View, StyleSheet, Text, Button, ViewStyle, StyleProp, Platform } from 'react-native';
 
-export interface CameraScannerProps {
+export interface CameraScannerProps extends React.PropsWithChildren {
     handleCodeScan: (res: string) => void;
     cameraStyle?: StyleProp<ViewStyle>;
 }
@@ -34,7 +35,9 @@ export default function CameraScanner(props: CameraScannerProps) {
             // animateShutter={false}
             // autoFocus={AutoFocus.on}
             // zoom={Platform.OS === 'ios' ? 0.015 : 0}
-        ></CameraView>
+        >
+            {props.children}
+        </CameraView>
     );
 }
 

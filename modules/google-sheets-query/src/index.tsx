@@ -39,14 +39,30 @@ export function signIn(): Promise<UserInformation> {
     return GoogleSheetsQuery.signIn();
 }
 
-export function postAttendanceEntry(sheetId: string, studentId: string, dateTime: string): Promise<boolean> {
-    return GoogleSheetsQuery.postAttendanceEntry(sheetId, studentId, dateTime);
+export function postAttendanceEntry(
+    accessToken: string,
+    sheetId: string,
+    sheetRange: string,
+    studentId: string,
+    dateTime: string
+): Promise<boolean> {
+    return GoogleSheetsQuery.postAttendanceEntry(accessToken, sheetId, sheetRange, studentId, dateTime);
 }
 
-export function getDailyAttendanceEntry(sheetId: string, studentId: string): Promise<{ entries: AttendanceEntry[] }> {
-    return GoogleSheetsQuery.getDailyAttendanceEntry(sheetId, studentId);
+export function getDailyAttendanceEntry(
+    accessToken: string,
+    sheetId: string,
+    sheetRange: string,
+    studentId: string
+): Promise<{ entries: AttendanceEntry[] }> {
+    return GoogleSheetsQuery.getDailyAttendanceEntry(accessToken, sheetId, sheetRange, studentId);
 }
 
-export function getStudentInfo(sheetId: string, studentId: string): Promise<StudentInfo> {
-    return GoogleSheetsQuery.getStudentInfo(sheetId, studentId);
+export function getStudentInfo(
+    accessToken: string,
+    sheetId: string,
+    sheetRange: string,
+    studentId: string
+): Promise<StudentInfo> {
+    return GoogleSheetsQuery.getStudentInfo(accessToken, sheetId, sheetRange, studentId);
 }

@@ -1,5 +1,5 @@
 import { ActivityIndicator } from 'react-native';
 
-export default function LoadingIndicator() {
-    return <ActivityIndicator />; // here for future customization + standardization
+export default function LoadingIndicator(props: { size?: number }) {
+    return <ActivityIndicator size={props.size ?? 20} />; // here for future customization + standardization
 }
