@@ -13,7 +13,7 @@ import {
 import { MainStyles } from '../styles/styles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORE_KEYS } from './ConfigureScreen';
-import { oauthContext } from '../../App';
+import { oauthContext } from '../context/OAuthContext';
 
 export interface DisplayedStudentInfo extends StudentInfo {
     dailyTimeIn: string | null;

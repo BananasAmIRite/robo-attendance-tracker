@@ -1,7 +1,7 @@
 import { Button, View, Text, TextInput, StyleSheet } from 'react-native';
 import { UserInformation, signIn } from 'react-native-google-sheets-query';
 import React, { useContext, useEffect, useState } from 'react';
-import { oauthContext } from '../../App';
+import { oauthContext } from '../context/OAuthContext';
 import { MainStyles } from '../styles/styles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

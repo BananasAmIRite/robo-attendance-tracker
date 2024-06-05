@@ -5,18 +5,18 @@ import { NavigationContainer } from '@react-navigation/native';
 import ConfigureScreen from './src/screens/ConfigureScreen';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { UserInformation, getUserInformation } from 'react-native-google-sheets-query';
-import React, { createContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-
-LogBox.ignoreLogs(['Require cycle:']);
+import { numberOfDevices } from 'react-native-nfc';
+import { oauthContext } from './src/context/OAuthContext';
 
 const Tab = createBottomTabNavigator();
-
-export const oauthContext = createContext<UserInformation | null>(null);
 
 export default function App() {
     const [userData, setUserData] = useState<UserInformation | null>(null);
     useEffect(() => {
+        numberOfDevices().then((a) => console.log(`Number of devices: ${a}`));
+
         DeviceEventEmitter.addListener('onAccessToken', (payload) => {
             console.log('gotten user info from token listener: ', payload);
 

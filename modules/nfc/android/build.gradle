@@ -25,11 +25,11 @@ if (isNewArchitectureEnabled()) {
 }
 
 def getExtOrDefault(name) {
-  return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties["GoogleSheetsQuery_" + name]
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : project.properties["Nfc_" + name]
 }
 
 def getExtOrIntegerDefault(name) {
-  return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["GoogleSheetsQuery_" + name]).toInteger()
+  return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["Nfc_" + name]).toInteger()
 }
 
 def supportsNamespace() {
@@ -43,14 +43,11 @@ def supportsNamespace() {
 
 android {
   if (supportsNamespace()) {
-    namespace "com.googlesheetsquery"
+    namespace "com.nfc"
 
     sourceSets {
       main {
         manifest.srcFile "src/main/AndroidManifestNew.xml"
-        resources {
-          srcDirs "src/main/resources", "src/main/configs"
-        }
       }
     }
   }
@@ -82,22 +79,16 @@ android {
 repositories {
   mavenCentral()
   google()
-
-  flatDir {
-    dirs("libs")
-  }
 }
 
 
 dependencies {
   // For < 0.71, this will be from the local maven repo
   // For > 0.71, this will be replaced by `com.facebook.react:react-android:$version` by react gradle plugin
-
+  //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-android:0.73.6"
-  implementation "com.google.apis:google-api-services-sheets:v4-rev20240514-2.0.0"
 
-  implementation 'com.google.api-client:google-api-client:2.4.0'
-  implementation 'com.google.api-client:google-api-client-android:2.4.0'
-
+  implementation files('lib\\acssmcio-0.5.2.aar')
+  implementation files('lib\\smartcardio-0.1.2.aar')
 }
 

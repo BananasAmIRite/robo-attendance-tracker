@@ -40,6 +40,7 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
     // bundle with the access token (see modules/google-sheets-query/src/index.tsx)
     // alternatively, you can probably emit an event (google how to) and catch it in react if you want a way to
     // funnel data from two diff sources (signIn & getUserInformation)
+
     promise.resolve(null);
   }
 
@@ -47,8 +48,8 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
   public void signIn(Promise promise) {
     // will run when user presses sign in button, probably will return user information same as getUserInformation
     // bundle with the access token (see modules/google-sheets-query/src/index.tsx)
+
     promise.resolve(Arguments.createMap());
-    
   }
 
   @ReactMethod
@@ -56,6 +57,7 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
     // add attendance entry to the google sheet
     // probably doesn't need to return anything or maybe a true/false for if it succeeded? idk
     promise.resolve(false);
+
   }
 
   @ReactMethod
