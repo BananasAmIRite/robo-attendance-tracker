@@ -23,12 +23,13 @@ export interface UserInformation {
 
 export interface StudentInfo {
     studentId: string;
-    studentName: string;
+    firstName: string;
+    lastName: string;
 }
 
 export interface AttendanceEntry {
     studentId: string;
-    timestamp: string;
+    datetime: string;
 }
 
 export function getUserInformation(): Promise<UserInformation> {
@@ -40,29 +41,22 @@ export function signIn(): Promise<UserInformation> {
 }
 
 export function postAttendanceEntry(
-    accessToken: string,
     sheetId: string,
     sheetRange: string,
     studentId: string,
     dateTime: string
-): Promise<boolean> {
-    return GoogleSheetsQuery.postAttendanceEntry(accessToken, sheetId, sheetRange, studentId, dateTime);
+): Promise<void> {
+    return GoogleSheetsQuery.postAttendanceEntry(sheetId, sheetRange, studentId, dateTime);
 }
 
 export function getDailyAttendanceEntry(
-    accessToken: string,
     sheetId: string,
     sheetRange: string,
     studentId: string
 ): Promise<{ entries: AttendanceEntry[] }> {
-    return GoogleSheetsQuery.getDailyAttendanceEntry(accessToken, sheetId, sheetRange, studentId);
+    return GoogleSheetsQuery.getDailyAttendanceEntry(sheetId, sheetRange, studentId);
 }
 
-export function getStudentInfo(
-    accessToken: string,
-    sheetId: string,
-    sheetRange: string,
-    studentId: string
-): Promise<StudentInfo> {
-    return GoogleSheetsQuery.getStudentInfo(accessToken, sheetId, sheetRange, studentId);
+export function getStudentInfo(sheetId: string, sheetRange: string, studentId: string): Promise<StudentInfo | null> {
+    return GoogleSheetsQuery.getStudentInfo(sheetId, sheetRange, studentId);
 }
