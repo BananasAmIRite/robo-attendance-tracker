@@ -40,4 +40,14 @@ export const MainStyles = StyleSheet.create({
         alignSelf: 'flex-end',
         alignItems: 'center',
     },
+
+    input: {
+        marginTop: 10,
+        marginBottom: 10,
+        paddingRight: 20,
+        overflow: 'scroll',
+        borderBottomWidth: 0.25,
+        marginVertical: 2,
+        paddingHorizontal: 10,
+    },
 });

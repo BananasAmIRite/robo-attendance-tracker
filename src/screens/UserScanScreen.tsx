@@ -1,6 +1,6 @@
-import { useContext, useState } from 'react';
-import { StyleSheet, View, Text } from 'react-native';
-import CameraScanner from '../components/CameraScanner';
+import { useContext, useEffect, useState } from 'react';
+import { StyleSheet, View, Text, ToastAndroid } from 'react-native';
+import CameraScanner from '../components/camera/CameraScanner';
 import ErrorBanner from '../components/ErrorBanner';
 import UserProfile from '../components/UserProfile';
 import LoadingIndicator from '../components/LoadingIndicator';
@@ -12,8 +12,10 @@ import {
 } from 'react-native-google-sheets-query';
 import { MainStyles } from '../styles/styles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { STORE_KEYS } from './ConfigureScreen';
+import { STORE_KEYS, ScanType } from './ConfigureScreen';
 import { oauthContext } from '../../App';
+import NFCUploadScanner from '../components/nfc/NFCUploadScanner';
+import Snackbar from 'react-native-snackbar';
 
 export interface DisplayedStudentInfo extends StudentInfo {
     dailyTimeIn: string | null;
@@ -29,8 +31,20 @@ export default function UserScanScreen() {
     const [displayedStudentInfo, setStudentInfo] = useState<DisplayedStudentInfo | null>(null);
     const userInfo = useContext(oauthContext);
 
+    const [scanType, setScanType] = useState<ScanType>('CAMERA');
+
     const formatDate = (date: Date) => {
         return `${date.getHours()}:${date.getMinutes()}`;
+    };
+
+    const showError = (error: string) => {
+        // ToastAndroid.showWithGravity(error, ToastAndroid.SHORT, ToastAndroid.TOP);
+        Snackbar.dismiss();
+        if (error === '') return;
+        Snackbar.show({
+            text: error,
+            duration: Snackbar.LENGTH_SHORT,
+        });
     };
 
     const handleCodeScan = async (id: string) => {
@@ -44,43 +58,36 @@ export default function UserScanScreen() {
 
         if (displayUser) return; // disable barcode scanning when user is being displayed
         if (id === lastId) {
-            setErrorMessage('You already scanned!');
+            showError('You already scanned!');
             return;
         }
         setDisplayUser('LOADING');
-        const info: StudentInfo = await getStudentInfo(userInfo.accessToken, userSheetId, userSheetRange, id);
+        const info: StudentInfo = await getStudentInfo(userSheetId, userSheetRange, id);
         if (!info) {
             // student doesnt exist
-            setErrorMessage('Student not found. Please scan again. ');
+            showError('Student not found. Please scan again. ');
             return;
         }
 
-        postAttendanceEntry(userInfo.accessToken, attdSheetId, attdSheetRange, id, new Date().toUTCString()).then(
-            async () => {
-                const { entries } = await getDailyAttendanceEntry(
-                    userInfo.accessToken,
-                    attdSheetId,
-                    attdSheetRange,
-                    id
-                ); // expect array of two values
-                const startTime = entries.length >= 1 ? formatDate(new Date(entries[0].timestamp)) : null;
-                const endTime = entries.length >= 2 ? formatDate(new Date(entries[1].timestamp)) : null;
+        postAttendanceEntry(attdSheetId, attdSheetRange, id, new Date().toUTCString()).then(async () => {
+            const { entries } = await getDailyAttendanceEntry(attdSheetId, attdSheetRange, id); // expect array of two values
+            const startTime = entries.length >= 1 ? formatDate(new Date(entries[0].datetime)) : null;
+            const endTime = entries.length >= 2 ? formatDate(new Date(entries[1].datetime)) : null;
 
-                const dispStudentInfo: DisplayedStudentInfo = {
-                    ...info,
-                    dailyTimeIn: startTime,
-                    dailyTimeOut: endTime,
-                };
+            const dispStudentInfo: DisplayedStudentInfo = {
+                ...info,
+                dailyTimeIn: startTime,
+                dailyTimeOut: endTime,
+            };
 
-                setStudentInfo(dispStudentInfo);
-                setDisplayUser(true);
+            setStudentInfo(dispStudentInfo);
+            setDisplayUser(true);
 
-                setLastId(id);
-                setTimeout(() => {
-                    setDisplayUser(false);
-                }, 2000);
-            }
-        );
+            setLastId(id);
+            setTimeout(() => {
+                setDisplayUser(false);
+            }, 2000);
+        });
 
         setErrorMessage('');
     };
@@ -89,6 +96,12 @@ export default function UserScanScreen() {
         // TODO: validate that it's a valid student id
         return true;
     };
+
+    useEffect(() => {
+        AsyncStorage.getItem(STORE_KEYS.KEY_SCAN_TYPE).then((e) => {
+            setScanType(e as ScanType);
+        });
+    }, []);
 
     return (
         <View style={MainStyles.container}>
@@ -107,40 +120,52 @@ export default function UserScanScreen() {
                     zIndex: 1000,
                 }}
             />
-            <CameraScanner
-                handleCodeScan={handleCodeScan}
-                cameraStyle={{
-                    // @ts-expect-error
-                    ...StyleSheet.absoluteFill,
-                    zIndex: -10,
-                    flex: 1,
-                    width: '100%',
-                    height: '100%',
-                }}
-            >
-                <View
-                    style={{
+            {scanType === 'CAMERA' ? (
+                <CameraScanner
+                    handleCodeScan={handleCodeScan}
+                    cameraStyle={{
+                        // @ts-expect-error
+                        ...StyleSheet.absoluteFill,
+                        zIndex: -10,
                         flex: 1,
-                        flexDirection: 'row',
-                        backgroundColor: 'transparent',
                         width: '100%',
-                        justifyContent: 'center',
+                        height: '100%',
                     }}
                 >
-                    <Text
-                        style={{ ...MainStyles.subsubtitle, color: 'white', alignSelf: 'flex-end', marginBottom: 20 }}
+                    <View
+                        style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            backgroundColor: 'transparent',
+                            width: '100%',
+                            justifyContent: 'center',
+                        }}
                     >
-                        {data}
-                    </Text>
-                </View>
-            </CameraScanner>
+                        <Text
+                            style={{
+                                ...MainStyles.subsubtitle,
+                                color: 'white',
+                                alignSelf: 'flex-end',
+                                marginBottom: 20,
+                            }}
+                        >
+                            {data}
+                        </Text>
+                    </View>
+                </CameraScanner>
+            ) : scanType === 'NFC' ? (
+                <NFCUploadScanner handleCodeScan={handleCodeScan} />
+            ) : (
+                <></>
+            )}
+
             {displayUser === 'LOADING' ? (
                 <View style={styles.darkenedContainer}>
                     <LoadingIndicator size={36} />
                 </View>
             ) : displayUser ? (
                 <UserProfile
-                    name={displayedStudentInfo?.studentName ?? 'No Student'}
+                    name={`${displayedStudentInfo?.firstName ?? 'No'} ${displayedStudentInfo?.lastName ?? 'Student'}`}
                     id={displayedStudentInfo?.studentId ?? 'No Id'}
                     dailyInTime={displayedStudentInfo?.dailyTimeIn ?? 'None'}
                     dailyOutTime={displayedStudentInfo?.dailyTimeOut ?? 'None'}

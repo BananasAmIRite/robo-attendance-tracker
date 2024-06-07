@@ -23,6 +23,7 @@ export interface UserInformation {
 
 export interface StudentInfo {
     studentId: string;
+    nfcId: string;
     firstName: string;
     lastName: string;
 }
@@ -59,4 +60,12 @@ export function getDailyAttendanceEntry(
 
 export function getStudentInfo(sheetId: string, sheetRange: string, studentId: string): Promise<StudentInfo | null> {
     return GoogleSheetsQuery.getStudentInfo(sheetId, sheetRange, studentId);
+}
+
+export function getStudentInfoByNFCId(sheetId: string, sheetRange: string, nfcId: string): Promise<StudentInfo | null> {
+    return GoogleSheetsQuery.getStudentInfoByNFCId(sheetId, sheetRange, nfcId);
+}
+
+export function bindStudentId(sheetId: string, sheetRange: string, studentId: string, nfcId: string): Promise<void> {
+    return GoogleSheetsQuery.bindStudentId(sheetId, sheetRange, studentId, nfcId);
 }

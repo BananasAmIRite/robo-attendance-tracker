@@ -147,6 +147,14 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
     promise.resolve(map);
   }
 
+  @ReactMethod
+  public void getStudentInfoByNFCId(String sheetId, String sheetRange, String nfcId, Promise promise) {
+    promise.resolve(null); 
+  }
 
+  @ReactMethod
+  public void bindStudentId(String sheetId, String sheetRange, String studentId, String nfcId, Promise promise) {
+    promise.resolve(null); 
+  }
 
 }

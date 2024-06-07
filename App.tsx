@@ -49,6 +49,7 @@ export default function App() {
                                     color={val.color}
                                 />
                             ),
+                            unmountOnBlur: true,
                         }}
                     />
                     <Tab.Screen
@@ -62,6 +63,7 @@ export default function App() {
                                     color={val.color}
                                 />
                             ),
+                            unmountOnBlur: true,
                         }}
                     />
                 </Tab.Navigator>
