@@ -1,6 +1,21 @@
 package com.googlesheetsquery;
 
+import android.accounts.AccountManager;
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+
+import com.facebook.react.bridge.ActivityEventListener;
+import com.google.api.client.auth.oauth2.Credential;
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.services.sheets.v4.Sheets;
+
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
@@ -16,6 +31,7 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.sheets.v4.Sheets;
+import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.Sheet;
 
@@ -40,13 +56,20 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Objects;
 
 
 @ReactModule(name = GoogleSheetsQueryModule.NAME)
 public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
   public static final String NAME = "GoogleSheetsQuery";
 
-  private static final List<String> SCOPES = new ArrayList<>(SheetsScopes.all());
+  private static final String PREF_ACCOUNT_NAME = "????";
+  private static final int REQUEST_ACCOUNT_PICKER = 420;
+
+    private GoogleAccountCredential credential;
+  private Sheets service;
 
   private final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
   private final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
@@ -56,6 +79,23 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
 
   public GoogleSheetsQueryModule(ReactApplicationContext reactContext) throws GeneralSecurityException, IOException {
     super(reactContext);
+    reactContext.addActivityEventListener(new ActivityEventListener() {
+      @Override
+      public void onActivityResult(Activity activity, int requestCode, int resultCode, @Nullable Intent data) {
+          if (resultCode != REQUEST_ACCOUNT_PICKER || resultCode != Activity.RESULT_OK || data == null || data.getExtras() == null) return;
+
+          final String accountName = data.getExtras().getString(AccountManager.KEY_ACCOUNT_NAME);
+
+          if (accountName == null) return;
+
+          credential.setSelectedAccountName(accountName);
+          final SharedPreferences prefs = getCurrentActivity().getPreferences(Context.MODE_PRIVATE);
+          prefs.edit().putString(PREF_ACCOUNT_NAME, accountName).commit();
+      }
+
+      @Override
+      public void onNewIntent(Intent intent) {}
+    });
   }
 
   @Override
@@ -65,21 +105,40 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void getUserInformation(Promise promise) {
+  public void getUserInformation(Promise promise) throws GeneralSecurityException, IOException {
     // run at beginning of application to retrieve information about user if applicable, can return null
     // used for automatic sign in when user has signed in before
     // bundle with the access token (see modules/google-sheets-query/src/index.tsx)
     // alternatively, you can probably emit an event (google how to) and catch it in react if you want a way to
     // funnel data from two diff sources (signIn & getUserInformation)
-    promise.resolve(null);
+    this.credential = GoogleAccountCredential.usingOAuth2(getCurrentActivity(), Collections.singleton(SheetsScopes.SPREADSHEETS));
+
+    final SharedPreferences prefs = Objects.requireNonNull(getCurrentActivity()).getPreferences(Context.MODE_PRIVATE);
+
+    NetHttpTransport transport = GoogleNetHttpTransport.newTrustedTransport();
+
+    credential.setSelectedAccountName(prefs.getString(PREF_ACCOUNT_NAME, null));
+
+    this.service = new Sheets.Builder(transport, GsonFactory.getDefaultInstance(), credential).setApplicationName("Attendance Tracker").build();
+
+    if (this.credential.getSelectedAccountName() != null) {
+      promise.resolve(this.credential.getToken());
+    } else {
+      promise.resolve(null);
+    }
   }
 
   @ReactMethod
-  public void signIn(Promise promise) {
+  public void signIn(Promise promise) throws GeneralSecurityException, IOException {
     // will run when user presses sign in button, probably will return user information same as getUserInformation
     // bundle with the access token (see modules/google-sheets-query/src/index.tsx)
-    promise.resolve(Arguments.createMap());
-    
+    Objects.requireNonNull(getCurrentActivity()).startActivityForResult(credential.newChooseAccountIntent(), REQUEST_ACCOUNT_PICKER);
+
+    if (this.credential.getSelectedAccountName() != null) {
+      promise.resolve(this.credential.getToken());
+    } else {
+      promise.resolve(null);
+    }
   }
 
   @ReactMethod

@@ -17,10 +17,6 @@ const GoogleSheetsQuery = NativeModules.GoogleSheetsQuery
           }
       );
 
-export interface UserInformation {
-    accessToken: string;
-}
-
 export interface StudentInfo {
     studentId: string;
     nfcId: string;
@@ -33,11 +29,11 @@ export interface AttendanceEntry {
     datetime: string;
 }
 
-export function getUserInformation(): Promise<UserInformation> {
+export function getUserInformation(): Promise<string | null> {
     return GoogleSheetsQuery.getUserInformation();
 }
 
-export function signIn(): Promise<UserInformation> {
+export function signIn(): Promise<string | null> {
     return GoogleSheetsQuery.signIn();
 }
 
