@@ -90,37 +90,43 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
     reactContext.addActivityEventListener(new ActivityEventListener() {
       @Override
       public void onActivityResult(Activity activity, int requestCode, int resultCode, @Nullable Intent data) {
-          if (requestCode != REQUEST_ACCOUNT_PICKER || resultCode != Activity.RESULT_OK || data == null || data.getExtras() == null) return;
+        switch (requestCode) {
+          case REQUEST_ACCOUNT_PICKER:
+            if (resultCode != Activity.RESULT_OK || data == null || data.getExtras() == null) return;
 
-          final String accountName = data.getExtras().getString(AccountManager.KEY_ACCOUNT_NAME);
+            final String accountName = data.getExtras().getString(AccountManager.KEY_ACCOUNT_NAME);
 
-          if (accountName == null) return;
+            if (accountName == null) return;
 
-        System.out.println(accountName);
+            credential.setSelectedAccountName(accountName);
+            final SharedPreferences prefs = getCurrentActivity().getPreferences(Context.MODE_PRIVATE);
+            prefs.edit().putString(PREF_ACCOUNT_NAME, accountName).commit();
 
-          credential.setSelectedAccountName(accountName);
-          final SharedPreferences prefs = getCurrentActivity().getPreferences(Context.MODE_PRIVATE);
-          prefs.edit().putString(PREF_ACCOUNT_NAME, accountName).commit();
-        System.out.println("committed");
-
-        AsyncTask.execute(() -> {
-          try {
-            String token = credential.getToken();
-            System.out.println(token);
-            attendanceManager.setMode(AttendanceManager.Mode.ONLINE);
-            emitEvent(EVENT_ACCESS_TOKEN, token);
-          } catch (IOException | GoogleAuthException e) {
-            if (e instanceof UserRecoverableAuthException) {
-              Intent intent = ((UserRecoverableAuthException) e).getIntent();
-              getCurrentActivity().startActivityForResult(intent, REQUEST_AUTHORIZATION);
-            }
-          }
-        });
+            checkOrEmitToken();
+            break;
+          case REQUEST_AUTHORIZATION:
+            checkOrEmitToken();
+        }
 
       }
 
       @Override
       public void onNewIntent(Intent intent) {}
+    });
+  }
+
+  private void checkOrEmitToken() {
+    AsyncTask.execute(() -> {
+      try {
+        String token = credential.getToken();
+        attendanceManager.setMode(AttendanceManager.Mode.ONLINE);
+        emitEvent(EVENT_ACCESS_TOKEN, token);
+      } catch (IOException | GoogleAuthException e) {
+        if (e instanceof UserRecoverableAuthException) {
+          Intent intent = ((UserRecoverableAuthException) e).getIntent();
+          getCurrentActivity().startActivityForResult(intent, REQUEST_AUTHORIZATION);
+        }
+      }
     });
   }
 
