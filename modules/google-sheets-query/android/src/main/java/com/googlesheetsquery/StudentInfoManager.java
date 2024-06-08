@@ -11,9 +11,14 @@ public class StudentInfoManager {
 
     public static StudentInfo getStudentInfo(Sheets service, String sheetId, String range, String studentId) throws GeneralSecurityException, IOException {
 
-        ValueRange response = service.spreadsheets().values()
-                .get(sheetId, range)
-                .execute();
+        ValueRange response = null;
+        try {
+            response = service.spreadsheets().values()
+                    .get(sheetId, range)
+                    .execute();
+        } catch (IOException err) {
+            System.out.println(err);
+        }
         List<List<Object>> values = response.getValues();
 
         if (values != null) {

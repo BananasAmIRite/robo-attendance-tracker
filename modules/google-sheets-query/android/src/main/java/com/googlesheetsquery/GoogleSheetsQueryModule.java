@@ -5,11 +5,14 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.AsyncTask;
 
 import com.facebook.react.bridge.ActivityEventListener;
-import com.google.api.client.auth.oauth2.Credential;
+import com.facebook.react.bridge.ReactContext;
+import com.google.android.gms.auth.GoogleAuthException;
+import com.google.android.gms.auth.GoogleAuthUtil;
+import com.google.android.gms.auth.UserRecoverableAuthException;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.sheets.v4.Sheets;
@@ -65,32 +68,55 @@ import java.util.Objects;
 public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
   public static final String NAME = "GoogleSheetsQuery";
 
-  private static final String PREF_ACCOUNT_NAME = "????";
+  private static final String PREF_ACCOUNT_NAME = "@AttendanceTracker_PREF_ACCOUNT_NAME";
   private static final int REQUEST_ACCOUNT_PICKER = 420;
+  private static final int REQUEST_AUTHORIZATION = 696;
+
+  private static final String EVENT_ACCESS_TOKEN = "onAccessToken";
 
     private GoogleAccountCredential credential;
-  private Sheets service;
+  private Sheets sheetsService;
 
   private final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
   private final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
-  private Sheets sheetsService = new Sheets.Builder(HTTP_TRANSPORT, JSON_FACTORY, null) // TODO: Vincent plz fix
-          .setApplicationName(NAME)
-          .build();
+
+  private final AttendanceManager attendanceManager;
 
   public GoogleSheetsQueryModule(ReactApplicationContext reactContext) throws GeneralSecurityException, IOException {
     super(reactContext);
+
+    attendanceManager = new AttendanceManager(reactContext);
+
     reactContext.addActivityEventListener(new ActivityEventListener() {
       @Override
       public void onActivityResult(Activity activity, int requestCode, int resultCode, @Nullable Intent data) {
-          if (resultCode != REQUEST_ACCOUNT_PICKER || resultCode != Activity.RESULT_OK || data == null || data.getExtras() == null) return;
+          if (requestCode != REQUEST_ACCOUNT_PICKER || resultCode != Activity.RESULT_OK || data == null || data.getExtras() == null) return;
 
           final String accountName = data.getExtras().getString(AccountManager.KEY_ACCOUNT_NAME);
 
           if (accountName == null) return;
 
+        System.out.println(accountName);
+
           credential.setSelectedAccountName(accountName);
           final SharedPreferences prefs = getCurrentActivity().getPreferences(Context.MODE_PRIVATE);
           prefs.edit().putString(PREF_ACCOUNT_NAME, accountName).commit();
+        System.out.println("committed");
+
+        AsyncTask.execute(() -> {
+          try {
+            String token = credential.getToken();
+            System.out.println(token);
+            attendanceManager.setMode(AttendanceManager.Mode.ONLINE);
+            emitEvent(EVENT_ACCESS_TOKEN, token);
+          } catch (IOException | GoogleAuthException e) {
+            if (e instanceof UserRecoverableAuthException) {
+              Intent intent = ((UserRecoverableAuthException) e).getIntent();
+              getCurrentActivity().startActivityForResult(intent, REQUEST_AUTHORIZATION);
+            }
+          }
+        });
+
       }
 
       @Override
@@ -105,7 +131,7 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void getUserInformation(Promise promise) throws GeneralSecurityException, IOException {
+  public void getUserInformation(Promise promise) {
     // run at beginning of application to retrieve information about user if applicable, can return null
     // used for automatic sign in when user has signed in before
     // bundle with the access token (see modules/google-sheets-query/src/index.tsx)
@@ -115,30 +141,46 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
 
     final SharedPreferences prefs = Objects.requireNonNull(getCurrentActivity()).getPreferences(Context.MODE_PRIVATE);
 
-    NetHttpTransport transport = GoogleNetHttpTransport.newTrustedTransport();
-
     credential.setSelectedAccountName(prefs.getString(PREF_ACCOUNT_NAME, null));
 
-    this.service = new Sheets.Builder(transport, GsonFactory.getDefaultInstance(), credential).setApplicationName("Attendance Tracker").build();
+    this.sheetsService = new Sheets.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential).setApplicationName("Attendance Tracker").build();
 
     if (this.credential.getSelectedAccountName() != null) {
-      promise.resolve(this.credential.getToken());
+      AsyncTask.execute(() -> {
+        try {
+          promise.resolve(this.credential.getToken());
+        } catch (IOException | GoogleAuthException e) {
+          promise.reject(e);
+        }
+      });
     } else {
       promise.resolve(null);
     }
   }
 
   @ReactMethod
-  public void signIn(Promise promise) throws GeneralSecurityException, IOException {
+  public void signIn(Promise promise) {
     // will run when user presses sign in button, probably will return user information same as getUserInformation
     // bundle with the access token (see modules/google-sheets-query/src/index.tsx)
     Objects.requireNonNull(getCurrentActivity()).startActivityForResult(credential.newChooseAccountIntent(), REQUEST_ACCOUNT_PICKER);
 
-    if (this.credential.getSelectedAccountName() != null) {
-      promise.resolve(this.credential.getToken());
-    } else {
       promise.resolve(null);
-    }
+  }
+
+  @ReactMethod
+  public void signOut(Promise promise) {
+    AsyncTask.execute(() -> {
+      try {
+        String token = this.credential.getToken();
+        if (token != null) {
+          GoogleAuthUtil.clearToken(getCurrentActivity(), token);
+        }
+        emitEvent(EVENT_ACCESS_TOKEN, null);
+        promise.resolve(null);
+      } catch (IOException | GoogleAuthException e) {
+        promise.reject(e);
+      }
+    });
   }
 
   @ReactMethod
@@ -146,7 +188,7 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
     if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O) return;
       OffsetDateTime date = OffsetDateTime.parse(datetime, DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.of("UTC")));
       ZonedDateTime zonedDate = date.atZoneSameInstant(ZoneId.systemDefault());
-      AttendanceManager.postAttendanceEntry(sheetsService,
+    attendanceManager.postAttendanceEntry(sheetsService,
               sheetId,
               sheetRange,
               studentId,
@@ -161,25 +203,14 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
     // get attendance entries for the current day (or possibly just the latest two attendance entries and prune if they're not from today)
     // bundle with a value of entries with an array of bundles with a student id and timestamp (see modules/google-sheets-query/src/index.tsx)
 
-    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O) return;
-
-    List<AttendanceManager.AttendanceEntry> values = AttendanceManager.getAttendanceEntries(sheetsService, sheetId, sheetRange, studentId);
+    List<AttendanceManager.AttendanceEntry> values = attendanceManager.getAttendanceEntries(sheetsService, sheetId, sheetRange, studentId);
 
     WritableMap map = Arguments.createMap();
 
     WritableArray arr = Arguments.createArray();
 
-    DateTimeFormatter dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT);
-    DateTimeFormatter timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT);
-
     for (AttendanceManager.AttendanceEntry entry : values) {
-      WritableMap entryMap = Arguments.createMap();
-      entryMap.putString("studentId", entry.getStudentId());
-      LocalDate date = LocalDate.parse(entry.getDate(), dateFormatter);
-      LocalTime time = LocalTime.parse(entry.getTime(), timeFormatter);
-      OffsetDateTime dateTime = date.atTime(time).atZone(ZoneId.systemDefault()).toOffsetDateTime().atZoneSameInstant(ZoneId.of("UTC")).toOffsetDateTime();
-      entryMap.putString("datetime", dateTime.format(DateTimeFormatter.ISO_DATE_TIME));
-      arr.pushMap(entryMap);
+      arr.pushMap(entry.toWritableMap());
     }
 
     map.putArray("entries", arr);
@@ -207,6 +238,36 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
+  public void isAttendanceCaching(Promise promise) {
+    promise.resolve(attendanceManager.getMode());
+  }
+
+  @ReactMethod
+  public void flushAttendanceCache(String attdSheet, String attdRange, Promise promise) {
+    try {
+      attendanceManager.flushCachedAttendance(sheetsService, attdSheet, attdRange);
+      promise.resolve(null);
+    } catch (Exception err) {
+      promise.reject(err);
+    }
+  }
+
+  @ReactMethod
+  public void getAttendanceCache(Promise promise) {
+    List<AttendanceManager.AttendanceEntry> values = attendanceManager.getCachedAttendance();
+
+    WritableArray arr = Arguments.createArray();
+
+    for (AttendanceManager.AttendanceEntry entry : values) {
+      arr.pushMap(entry.toWritableMap());
+    }
+
+    promise.resolve(arr);
+  }
+
+
+
+  @ReactMethod
   public void getStudentInfoByNFCId(String sheetId, String sheetRange, String nfcId, Promise promise) {
     promise.resolve(null); 
   }
@@ -214,6 +275,11 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
   @ReactMethod
   public void bindStudentId(String sheetId, String sheetRange, String studentId, String nfcId, Promise promise) {
     promise.resolve(null); 
+  }
+
+  public void emitEvent(String event, Object obj) {
+    getReactApplicationContext().getJSModule(ReactContext.RCTDeviceEventEmitter.class)
+            .emit(event, obj);
   }
 
 }

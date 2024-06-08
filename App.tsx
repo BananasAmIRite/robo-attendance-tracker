@@ -4,28 +4,30 @@ import UserScanScreen from './src/screens/UserScanScreen';
 import { NavigationContainer } from '@react-navigation/native';
 import ConfigureScreen from './src/screens/ConfigureScreen';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { UserInformation, getUserInformation } from 'react-native-google-sheets-query';
+import { getUserInformation } from 'react-native-google-sheets-query';
 import React, { createContext, useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import CacheScreen from './src/screens/CacheScreen';
+import { MaterialIcons } from '@expo/vector-icons';
 
 LogBox.ignoreLogs(['Require cycle:']);
 
 const Tab = createBottomTabNavigator();
 
-export const oauthContext = createContext<UserInformation | null>(null);
+export const oauthContext = createContext<string | null>(null);
 
 export default function App() {
-    const [userData, setUserData] = useState<UserInformation | null>(null);
+    const [userData, setUserData] = useState<string | null>(null);
     useEffect(() => {
         DeviceEventEmitter.addListener('onAccessToken', (payload) => {
             console.log('gotten user info from token listener: ', payload);
 
-            setUserData(JSON.parse(payload));
+            setUserData(payload);
         });
         getUserInformation().then((data) => {
             console.log('gotten user information: ' + data);
 
-            // setUserData();
+            setUserData(data);
         });
     }, []);
 
@@ -63,6 +65,14 @@ export default function App() {
                                     color={val.color}
                                 />
                             ),
+                            unmountOnBlur: true,
+                        }}
+                    />
+                    <Tab.Screen
+                        name='Cache'
+                        component={CacheScreen}
+                        options={{
+                            tabBarIcon: (val) => <MaterialIcons name='cached' size={val.size} color={val.color} />,
                             unmountOnBlur: true,
                         }}
                     />

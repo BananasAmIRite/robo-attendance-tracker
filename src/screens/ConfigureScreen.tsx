@@ -1,5 +1,5 @@
 import { Button, View, Text, TextInput, StyleSheet, Switch } from 'react-native';
-import { UserInformation, signIn } from 'react-native-google-sheets-query';
+import { getStudentInfo, signIn, signOut } from 'react-native-google-sheets-query';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { oauthContext } from '../../App';
 import { MainStyles } from '../styles/styles';
@@ -18,7 +18,7 @@ export const STORE_KEYS = {
 export type ScanType = 'NFC' | 'CAMERA';
 
 export default function ConfigureScreen() {
-    const userData = useContext<UserInformation | null>(oauthContext);
+    const userData = useContext<string | null>(oauthContext);
     const [userSheetId, setUserSheetId] = useState('');
     const [userSheetRange, setUserSheetRange] = useState('');
     const [attendanceId, setAttendanceId] = useState('');
@@ -77,7 +77,10 @@ export default function ConfigureScreen() {
                         <Button title='Sign in with Google' onPress={handleSignin}></Button>
                     </View>
                 ) : (
-                    <Text style={MainStyles.subsubtitle}>You're signed in!</Text>
+                    <>
+                        <Text style={MainStyles.subsubtitle}>You're signed in!</Text>
+                        <Button title='Sign Out' onPress={signOut} />
+                    </>
                 )}
             </View>
 

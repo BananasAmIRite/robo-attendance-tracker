@@ -18,8 +18,7 @@ import NFCUploadScanner from '../components/nfc/NFCUploadScanner';
 import Snackbar from 'react-native-snackbar';
 
 export interface DisplayedStudentInfo extends StudentInfo {
-    dailyTimeIn: string | null;
-    dailyTimeOut: string | null;
+    scanTime: string;
 }
 
 export default function UserScanScreen() {
@@ -33,12 +32,19 @@ export default function UserScanScreen() {
 
     const [scanType, setScanType] = useState<ScanType>('CAMERA');
 
+    // const [scanSound, setScanSound] = useState<Sound>();
+
     const formatDate = (date: Date) => {
-        return `${date.getHours()}:${date.getMinutes()}`;
+        return `${date.getHours() === 12 || date.getHours() === 0 ? 12 : date.getHours() % 12}:${formatTwoDigits(
+            date.getMinutes()
+        )} ${date.getHours() >= 12 ? 'PM' : 'AM'}`;
+    };
+
+    const formatTwoDigits = (n: number) => {
+        return n < 10 ? '0' + n : n;
     };
 
     const showError = (error: string) => {
-        // ToastAndroid.showWithGravity(error, ToastAndroid.SHORT, ToastAndroid.TOP);
         Snackbar.dismiss();
         if (error === '') return;
         Snackbar.show({
@@ -63,27 +69,27 @@ export default function UserScanScreen() {
         }
         setDisplayUser('LOADING');
         const info: StudentInfo = await getStudentInfo(userSheetId, userSheetRange, id);
+
         if (!info) {
             // student doesnt exist
             showError('Student not found. Please scan again. ');
+            setDisplayUser(false);
             return;
         }
 
-        postAttendanceEntry(attdSheetId, attdSheetRange, id, new Date().toUTCString()).then(async () => {
-            const { entries } = await getDailyAttendanceEntry(attdSheetId, attdSheetRange, id); // expect array of two values
-            const startTime = entries.length >= 1 ? formatDate(new Date(entries[0].datetime)) : null;
-            const endTime = entries.length >= 2 ? formatDate(new Date(entries[1].datetime)) : null;
+        const date = new Date();
 
+        postAttendanceEntry(attdSheetId, attdSheetRange, id, date.toISOString()).then(async () => {
             const dispStudentInfo: DisplayedStudentInfo = {
                 ...info,
-                dailyTimeIn: startTime,
-                dailyTimeOut: endTime,
+                scanTime: formatDate(date),
             };
 
             setStudentInfo(dispStudentInfo);
             setDisplayUser(true);
 
             setLastId(id);
+
             setTimeout(() => {
                 setDisplayUser(false);
             }, 2000);
@@ -167,8 +173,7 @@ export default function UserScanScreen() {
                 <UserProfile
                     name={`${displayedStudentInfo?.firstName ?? 'No'} ${displayedStudentInfo?.lastName ?? 'Student'}`}
                     id={displayedStudentInfo?.studentId ?? 'No Id'}
-                    dailyInTime={displayedStudentInfo?.dailyTimeIn ?? 'None'}
-                    dailyOutTime={displayedStudentInfo?.dailyTimeOut ?? 'None'}
+                    scanTime={displayedStudentInfo?.scanTime ?? 'None'}
                     attendanceStatus='PRESENT'
                     action='SCAN_IN'
                 ></UserProfile>

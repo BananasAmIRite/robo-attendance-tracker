@@ -29,6 +29,8 @@ export interface AttendanceEntry {
     datetime: string;
 }
 
+// authentication
+
 export function getUserInformation(): Promise<string | null> {
     return GoogleSheetsQuery.getUserInformation();
 }
@@ -36,6 +38,12 @@ export function getUserInformation(): Promise<string | null> {
 export function signIn(): Promise<string | null> {
     return GoogleSheetsQuery.signIn();
 }
+
+export function signOut(): Promise<void> {
+    return GoogleSheetsQuery.signOut();
+}
+
+// attendance
 
 export function postAttendanceEntry(
     sheetId: string,
@@ -53,6 +61,20 @@ export function getDailyAttendanceEntry(
 ): Promise<{ entries: AttendanceEntry[] }> {
     return GoogleSheetsQuery.getDailyAttendanceEntry(sheetId, sheetRange, studentId);
 }
+
+export function isAttendanceCaching(): Promise<void> {
+    return GoogleSheetsQuery.isAttendanceCaching();
+}
+
+export function flushAttendanceCache(sheetId: string, sheetRange: string): Promise<void> {
+    return GoogleSheetsQuery.flushAttendanceCache(sheetId, sheetRange);
+}
+
+export function getAttendanceCache(): Promise<AttendanceEntry[]> {
+    return GoogleSheetsQuery.getAttendanceCache();
+}
+
+// student info
 
 export function getStudentInfo(sheetId: string, sheetRange: string, studentId: string): Promise<StudentInfo | null> {
     return GoogleSheetsQuery.getStudentInfo(sheetId, sheetRange, studentId);
