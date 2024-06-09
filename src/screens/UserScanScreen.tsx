@@ -132,6 +132,7 @@ export default function UserScanScreen() {
                     zIndex: 1000,
                 }}
             />
+
             {scanType === 'CAMERA' ? (
                 <CameraScanner
                     handleCodeScan={handleCodeScan}
@@ -166,7 +167,18 @@ export default function UserScanScreen() {
                     </View>
                 </CameraScanner>
             ) : scanType === 'NFC' ? (
-                <NFCUploadScanner handleCodeScan={handleCodeScan} />
+                <View
+                    style={{
+                        // @ts-expect-error
+                        ...StyleSheet.absoluteFill,
+                        zIndex: -10,
+                        flex: 1,
+                        width: '100%',
+                        height: '100%',
+                    }}
+                >
+                    <NFCUploadScanner handleCodeScan={handleCodeScan} />
+                </View>
             ) : (
                 <></>
             )}

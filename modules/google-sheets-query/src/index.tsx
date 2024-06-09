@@ -62,8 +62,12 @@ export function getDailyAttendanceEntry(
     return GoogleSheetsQuery.getDailyAttendanceEntry(sheetId, sheetRange, studentId);
 }
 
-export function isAttendanceCaching(): Promise<void> {
-    return GoogleSheetsQuery.isAttendanceCaching();
+export function isAttendanceOnline(): Promise<boolean> {
+    return GoogleSheetsQuery.isAttendanceOnline();
+}
+
+export function isStudentInfoOnline(): Promise<boolean> {
+    return GoogleSheetsQuery.isStudentInfoOnline();
 }
 
 export function flushAttendanceCache(sheetId: string, sheetRange: string): Promise<void> {

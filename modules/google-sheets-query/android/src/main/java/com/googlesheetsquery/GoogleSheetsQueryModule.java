@@ -132,6 +132,8 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
       AsyncTask.execute(() -> {
         try {
           promise.resolve(oauthManager.getToken());
+          attendanceManager.setMode(RetrievalMode.ONLINE);
+          studentInfoManager.setMode(RetrievalMode.ONLINE);
         } catch (IOException | GoogleAuthException e) {
           promise.reject(e);
         }
@@ -205,27 +207,29 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
+  public void isAttendanceOnline(Promise promise) {
+    promise.resolve(attendanceManager.getMode() == RetrievalMode.ONLINE);
+  }
+
+  @ReactMethod
+  public void isStudentInfoOnline(Promise promise) {
+    promise.resolve(studentInfoManager.getMode() == RetrievalMode.ONLINE);
+  }
+
+  @ReactMethod
   public void getStudentInfo(String sheetId, String sheetRange, String studentId, Promise promise) {
     // get student data by student id from the student data google sheet
-    WritableMap map = Arguments.createMap();
+    StudentInfoManager.StudentInfo info = studentInfoManager.getStudentInfoBySID(sheetsService, sheetId, sheetRange, studentId);
 
-    StudentInfoManager.StudentInfo info = studentInfoManager.getStudentInfo(sheetsService, sheetId, sheetRange, studentId);
+    System.out.println(studentId);
+    System.out.println(info);
 
     if (info == null) {
       promise.resolve(null);
       return;
     }
 
-    map.putString("studentId", info.getStudentId());
-    map.putString("firstName", info.getFirstName());
-    map.putString("lastName", info.getLastName());
-
-    promise.resolve(map);
-  }
-
-  @ReactMethod
-  public void isAttendanceCaching(Promise promise) {
-    promise.resolve(attendanceManager.getMode());
+    promise.resolve(info.toWritableMap());
   }
 
   @ReactMethod
@@ -257,12 +261,27 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void getStudentInfoByNFCId(String sheetId, String sheetRange, String nfcId, Promise promise) {
-    promise.resolve(null); 
+    // get student data by student id from the student data google sheet
+    StudentInfoManager.StudentInfo info = studentInfoManager.getStudentInfoByNFCID(sheetsService, sheetId, sheetRange, nfcId);
+
+    if (info == null) {
+      promise.resolve(null);
+      return;
+    }
+
+    promise.resolve(info.toWritableMap());
   }
 
   @ReactMethod
   public void bindStudentId(String sheetId, String sheetRange, String studentId, String nfcId, Promise promise) {
-    promise.resolve(null); 
+    try {
+      studentInfoManager.bindStudentId(sheetsService, sheetId, sheetRange, studentId, nfcId);
+      promise.resolve(null);
+    } catch (IOException err) {
+      err.printStackTrace();
+      promise.reject(err);
+    }
+
   }
 
   @ReactMethod

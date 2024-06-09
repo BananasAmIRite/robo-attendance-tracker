@@ -36,6 +36,7 @@ export default function NFCUploadScanner(props: NFCUploadScannerProps) {
         if (studentInfo) {
             // student lookup successful
             props.handleCodeScan(studentInfo.studentId);
+            setUploadState('TAG_SCAN');
         } else {
             // couldn't find student. create new profile
             setUploadState('INPUT_ID');
@@ -52,6 +53,7 @@ export default function NFCUploadScanner(props: NFCUploadScannerProps) {
         } else {
             await bindStudentId(userSheetId, userSheetRange, studentId, nfcId);
             props.handleCodeScan(studentId);
+            setUploadState('TAG_SCAN');
         }
     };
 

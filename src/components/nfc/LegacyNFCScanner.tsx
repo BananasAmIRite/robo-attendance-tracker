@@ -6,7 +6,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 nfcManager.start();
 
-export type NFCScannerState = 'OFF' | 'SCANNING' | 'SCANNING_DONE';
+export type NFCScannerState = 'OFF' | 'SCANNING';
 export interface NFCScannerProps {
     handleTagScan: (tag: TagEvent) => void;
 }
@@ -15,13 +15,19 @@ export default function LegacyNFCScanner(props: NFCScannerProps) {
     const [scannerState, setScannerState] = useState<NFCScannerState>('OFF');
 
     const cleanUp = () => {
+        console.log('cleaning up');
+
         nfcManager.setEventListener(NfcEvents.DiscoverTag, null);
         nfcManager.setEventListener(NfcEvents.SessionClosed, null);
     };
 
+    const onNFCRead = async (tag: TagEvent) => {
+        props.handleTagScan(tag);
+    };
+
     const addNfcListeners = () => {
         nfcManager.setEventListener(NfcEvents.DiscoverTag, (tag) => {
-            props.handleTagScan(tag);
+            onNFCRead(tag);
         });
         nfcManager.setEventListener(NfcEvents.SessionClosed, () => {
             cleanUp();
@@ -42,6 +48,7 @@ export default function LegacyNFCScanner(props: NFCScannerProps) {
             console.log('unregistering');
 
             nfcManager.unregisterTagEvent();
+            cleanUp();
         };
     }, [scannerState]);
 
@@ -51,15 +58,14 @@ export default function LegacyNFCScanner(props: NFCScannerProps) {
                 <>
                     <MaterialCommunityIcons name='card-search-outline' size={64} color='black' />
                     <Text style={MainStyles.subtitle}>Scanning for card...</Text>
-
-                    <Button title='Stop scanning' onPress={() => setScannerState('OFF')} />
                 </>
-            ) : scannerState === 'SCANNING_DONE' ? (
-                <>
-                    <MaterialCommunityIcons name='card-remove-outline' size={64} color='black' />
-                    <Text style={MainStyles.subtitle}>Card scanned. Please remove. </Text>
-                </>
-            ) : scannerState === 'OFF' ? (
+            ) : //  : scannerState === 'SCANNING_DONE' ? (
+            //     <>
+            //         <MaterialCommunityIcons name='card-remove-outline' size={64} color='black' />
+            //         <Text style={MainStyles.subtitle}>Card scanned. Please remove. </Text>
+            //     </>
+            // )
+            scannerState === 'OFF' ? (
                 <>
                     <MaterialCommunityIcons name='card-off-outline' size={64} color='black' />
                     <Text style={MainStyles.subtitle}>Idle</Text>

@@ -105,11 +105,11 @@ public class AttendanceManager {
 
             if (values != null) {
                 for (List<Object> row : values) {
-                    if (row.get(0).equals(studentId)) {
+                    if (ArrayUtils.getOrElse(row, 0, null).equals(studentId)) {
                         attendanceEntries.add(new AttendanceEntry(
-                                row.get(0).toString(),
-                                row.get(1).toString(),
-                                row.get(2).toString()
+                                ArrayUtils.getOrElse(row, 0, "").toString(),
+                                ArrayUtils.getOrElse(row, 1, "").toString(),
+                                ArrayUtils.getOrElse(row, 2, "").toString()
                         ));
                     }
                 }
