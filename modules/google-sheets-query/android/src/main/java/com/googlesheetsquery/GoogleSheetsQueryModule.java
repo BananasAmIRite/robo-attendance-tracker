@@ -73,8 +73,6 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
   private static final int REQUEST_AUTHORIZATION = 696;
 
   private static final String EVENT_ACCESS_TOKEN = "onAccessToken";
-
-    private GoogleAccountCredential credential;
   private Sheets sheetsService;
 
   private final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
@@ -82,44 +80,26 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
 
   private final AttendanceManager attendanceManager;
 
+  private final StudentInfoManager studentInfoManager;
+  private final OauthManager oauthManager;
+
   public GoogleSheetsQueryModule(ReactApplicationContext reactContext) throws GeneralSecurityException, IOException {
     super(reactContext);
 
     attendanceManager = new AttendanceManager(reactContext);
+    studentInfoManager = new StudentInfoManager();
 
-    reactContext.addActivityEventListener(new ActivityEventListener() {
-      @Override
-      public void onActivityResult(Activity activity, int requestCode, int resultCode, @Nullable Intent data) {
-        switch (requestCode) {
-          case REQUEST_ACCOUNT_PICKER:
-            if (resultCode != Activity.RESULT_OK || data == null || data.getExtras() == null) return;
+    this.oauthManager = new OauthManager(reactContext, HTTP_TRANSPORT, JSON_FACTORY, this::checkOrEmitToken);
 
-            final String accountName = data.getExtras().getString(AccountManager.KEY_ACCOUNT_NAME);
 
-            if (accountName == null) return;
-
-            credential.setSelectedAccountName(accountName);
-            final SharedPreferences prefs = getCurrentActivity().getPreferences(Context.MODE_PRIVATE);
-            prefs.edit().putString(PREF_ACCOUNT_NAME, accountName).commit();
-
-            checkOrEmitToken();
-            break;
-          case REQUEST_AUTHORIZATION:
-            checkOrEmitToken();
-        }
-
-      }
-
-      @Override
-      public void onNewIntent(Intent intent) {}
-    });
   }
 
   private void checkOrEmitToken() {
     AsyncTask.execute(() -> {
       try {
-        String token = credential.getToken();
-        attendanceManager.setMode(AttendanceManager.Mode.ONLINE);
+        String token = oauthManager.getToken();
+        attendanceManager.setMode(RetrievalMode.ONLINE);
+        studentInfoManager.setMode(RetrievalMode.ONLINE);
         emitEvent(EVENT_ACCESS_TOKEN, token);
       } catch (IOException | GoogleAuthException e) {
         if (e instanceof UserRecoverableAuthException) {
@@ -143,18 +123,15 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
     // bundle with the access token (see modules/google-sheets-query/src/index.tsx)
     // alternatively, you can probably emit an event (google how to) and catch it in react if you want a way to
     // funnel data from two diff sources (signIn & getUserInformation)
-    this.credential = GoogleAccountCredential.usingOAuth2(getCurrentActivity(), Collections.singleton(SheetsScopes.SPREADSHEETS));
 
-    final SharedPreferences prefs = Objects.requireNonNull(getCurrentActivity()).getPreferences(Context.MODE_PRIVATE);
+    oauthManager.initCredentials(getCurrentActivity());
 
-    credential.setSelectedAccountName(prefs.getString(PREF_ACCOUNT_NAME, null));
+    this.sheetsService = new Sheets.Builder(HTTP_TRANSPORT, JSON_FACTORY, oauthManager.getCredential()).setApplicationName("Attendance Tracker").build();
 
-    this.sheetsService = new Sheets.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential).setApplicationName("Attendance Tracker").build();
-
-    if (this.credential.getSelectedAccountName() != null) {
+    if (oauthManager.getCredential().getSelectedAccountName() != null) {
       AsyncTask.execute(() -> {
         try {
-          promise.resolve(this.credential.getToken());
+          promise.resolve(oauthManager.getToken());
         } catch (IOException | GoogleAuthException e) {
           promise.reject(e);
         }
@@ -168,16 +145,16 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
   public void signIn(Promise promise) {
     // will run when user presses sign in button, probably will return user information same as getUserInformation
     // bundle with the access token (see modules/google-sheets-query/src/index.tsx)
-    Objects.requireNonNull(getCurrentActivity()).startActivityForResult(credential.newChooseAccountIntent(), REQUEST_ACCOUNT_PICKER);
+    Objects.requireNonNull(getCurrentActivity()).startActivityForResult(oauthManager.getCredential().newChooseAccountIntent(), REQUEST_ACCOUNT_PICKER);
 
-      promise.resolve(null);
+    promise.resolve(null);
   }
 
   @ReactMethod
   public void signOut(Promise promise) {
     AsyncTask.execute(() -> {
       try {
-        String token = this.credential.getToken();
+        String token = oauthManager.getToken();
         if (token != null) {
           GoogleAuthUtil.clearToken(getCurrentActivity(), token);
         }
@@ -190,10 +167,13 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void postAttendanceEntry(String sheetId, String sheetRange, String studentId, String datetime, Promise promise) throws GeneralSecurityException, IOException {
+  public void postAttendanceEntry(String sheetId, String sheetRange, String studentId, String datetime, Promise promise) {
     if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O) return;
-      OffsetDateTime date = OffsetDateTime.parse(datetime, DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.of("UTC")));
-      ZonedDateTime zonedDate = date.atZoneSameInstant(ZoneId.systemDefault());
+    // convert the ISO datetime string into the respective date and time fields
+    OffsetDateTime date = OffsetDateTime.parse(datetime, DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.of("UTC")));
+    ZonedDateTime zonedDate = date.atZoneSameInstant(ZoneId.systemDefault());
+
+    // run post entry request
     attendanceManager.postAttendanceEntry(sheetsService,
               sheetId,
               sheetRange,
@@ -205,7 +185,7 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void getDailyAttendanceEntry(String sheetId, String sheetRange, String studentId, Promise promise) throws GeneralSecurityException, IOException {
+  public void getDailyAttendanceEntry(String sheetId, String sheetRange, String studentId, Promise promise) {
     // get attendance entries for the current day (or possibly just the latest two attendance entries and prune if they're not from today)
     // bundle with a value of entries with an array of bundles with a student id and timestamp (see modules/google-sheets-query/src/index.tsx)
 
@@ -225,11 +205,11 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void getStudentInfo(String sheetId, String sheetRange, String studentId, Promise promise) throws GeneralSecurityException, IOException {
+  public void getStudentInfo(String sheetId, String sheetRange, String studentId, Promise promise) {
     // get student data by student id from the student data google sheet
     WritableMap map = Arguments.createMap();
 
-    StudentInfoManager.StudentInfo info = StudentInfoManager.getStudentInfo(sheetsService, sheetId, sheetRange, studentId);
+    StudentInfoManager.StudentInfo info = studentInfoManager.getStudentInfo(sheetsService, sheetId, sheetRange, studentId);
 
     if (info == null) {
       promise.resolve(null);
@@ -250,8 +230,10 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void flushAttendanceCache(String attdSheet, String attdRange, Promise promise) {
+    // write cached attendance to the google sheets if possible, clear the attendance cache, set mode back to online if not already
     try {
       attendanceManager.flushCachedAttendance(sheetsService, attdSheet, attdRange);
+      attendanceManager.setMode(RetrievalMode.ONLINE);
       promise.resolve(null);
     } catch (Exception err) {
       promise.reject(err);
@@ -281,6 +263,12 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
   @ReactMethod
   public void bindStudentId(String sheetId, String sheetRange, String studentId, String nfcId, Promise promise) {
     promise.resolve(null); 
+  }
+
+  @ReactMethod
+  public void loadStudentInfo(String sheetId, String sheetRange, Promise promise) {
+    studentInfoManager.loadAllStudentInfo(sheetsService, sheetId, sheetRange);
+    promise.resolve(null);
   }
 
   public void emitEvent(String event, Object obj) {

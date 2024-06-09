@@ -8,6 +8,7 @@ import {
     StudentInfo,
     getDailyAttendanceEntry,
     getStudentInfo,
+    loadStudentInfo,
     postAttendanceEntry,
 } from 'react-native-google-sheets-query';
 import { MainStyles } from '../styles/styles';
@@ -104,6 +105,11 @@ export default function UserScanScreen() {
     };
 
     useEffect(() => {
+        (async () => {
+            const userSheetId = await AsyncStorage.getItem(STORE_KEYS.KEY_USER_SHEET_ID);
+            const userSheetRange = await AsyncStorage.getItem(STORE_KEYS.KEY_USER_SHEET_RANGE);
+            loadStudentInfo(userSheetId, userSheetRange);
+        })();
         AsyncStorage.getItem(STORE_KEYS.KEY_SCAN_TYPE).then((e) => {
             setScanType(e as ScanType);
         });

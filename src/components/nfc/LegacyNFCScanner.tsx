@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text, Button } from 'react-native';
-import nfcManager, { NfcTech, TagEvent } from 'react-native-nfc-manager';
+import nfcManager, { NfcEvents, NfcTech, TagEvent } from 'react-native-nfc-manager';
 import { MainStyles } from '../../styles/styles';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
@@ -11,22 +11,24 @@ export interface NFCScannerProps {
     handleTagScan: (tag: TagEvent) => void;
 }
 
-export default function NFCScanner(props: NFCScannerProps) {
+export default function LegacyNFCScanner(props: NFCScannerProps) {
     const [scannerState, setScannerState] = useState<NFCScannerState>('OFF');
-    const readNfc = async () => {
-        try {
-            await nfcManager.requestTechnology(NfcTech.Ndef);
-            const tag = await nfcManager.getTag();
-            setScannerState('SCANNING_DONE');
-            return tag;
-        } catch (err) {
-            console.error(err);
-        } finally {
-            try {
-                nfcManager.cancelTechnologyRequest();
-            } catch (err) {}
-        }
-        return null;
+
+    const cleanUp = () => {
+        nfcManager.setEventListener(NfcEvents.DiscoverTag, null);
+        nfcManager.setEventListener(NfcEvents.SessionClosed, null);
+    };
+
+    const addNfcListeners = () => {
+        nfcManager.setEventListener(NfcEvents.DiscoverTag, (tag) => {
+            props.handleTagScan(tag);
+        });
+        nfcManager.setEventListener(NfcEvents.SessionClosed, () => {
+            cleanUp();
+        });
+        console.log('registering');
+
+        nfcManager.registerTagEvent();
     };
 
     useEffect(() => {
@@ -34,18 +36,12 @@ export default function NFCScanner(props: NFCScannerProps) {
     }, []);
 
     useEffect(() => {
-        if (scannerState === 'SCANNING')
-            readNfc().then(
-                (tag) => props.handleTagScan(tag),
-                (err) => {
-                    console.log(err);
-                }
-            );
+        if (scannerState === 'SCANNING') addNfcListeners();
 
         return () => {
-            try {
-                nfcManager.cancelTechnologyRequest({});
-            } catch (err) {}
+            console.log('unregistering');
+
+            nfcManager.unregisterTagEvent();
         };
     }, [scannerState]);
 
@@ -55,6 +51,8 @@ export default function NFCScanner(props: NFCScannerProps) {
                 <>
                     <MaterialCommunityIcons name='card-search-outline' size={64} color='black' />
                     <Text style={MainStyles.subtitle}>Scanning for card...</Text>
+
+                    <Button title='Stop scanning' onPress={() => setScannerState('OFF')} />
                 </>
             ) : scannerState === 'SCANNING_DONE' ? (
                 <>

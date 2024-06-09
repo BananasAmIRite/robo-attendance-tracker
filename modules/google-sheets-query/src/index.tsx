@@ -87,3 +87,7 @@ export function getStudentInfoByNFCId(sheetId: string, sheetRange: string, nfcId
 export function bindStudentId(sheetId: string, sheetRange: string, studentId: string, nfcId: string): Promise<void> {
     return GoogleSheetsQuery.bindStudentId(sheetId, sheetRange, studentId, nfcId);
 }
+
+export function loadStudentInfo(sheetId: string, sheetRange: string): Promise<void> {
+    return GoogleSheetsQuery.loadStudentInfo(sheetId, sheetRange);
+}

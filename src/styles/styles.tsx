@@ -24,7 +24,7 @@ export const MainStyles = StyleSheet.create({
         textAlign: 'center',
     },
     subtitle: {
-        fontSize: 48,
+        fontSize: 40,
         fontWeight: 'bold',
         color: 'black',
         textAlign: 'center',

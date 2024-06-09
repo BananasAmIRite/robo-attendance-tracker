@@ -6,6 +6,7 @@ import { MainStyles } from '../../styles/styles';
 import { bindStudentId, getStudentInfo, getStudentInfoByNFCId } from 'react-native-google-sheets-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORE_KEYS } from '../../screens/ConfigureScreen';
+import LegacyNFCScanner from './LegacyNFCScanner';
 
 export interface NFCUploadScannerProps {
     handleCodeScan: (res: string) => void;
@@ -25,6 +26,7 @@ export default function NFCUploadScanner(props: NFCUploadScannerProps) {
     }, []);
 
     const handleTag = async (tag: TagEvent) => {
+        if (!tag) return;
         const uid = tag.id;
         if (!uid) return;
 
@@ -54,10 +56,12 @@ export default function NFCUploadScanner(props: NFCUploadScannerProps) {
     };
 
     return uploadState === 'TAG_SCAN' ? (
-        <NFCScanner handleTagScan={handleTag} />
+        <>
+            <LegacyNFCScanner handleTagScan={handleTag} />
+        </>
     ) : uploadState === 'INPUT_ID' ? (
         <View style={{ ...MainStyles.container, width: '100%' }}>
-            <Text style={MainStyles.subsubtitle}>Please enter your Student ID</Text>
+            <Text style={MainStyles.subtitle}>Please enter your Student ID</Text>
             <TextInput
                 style={{ ...MainStyles.input, width: '50%' }}
                 placeholder='Student ID'
@@ -68,7 +72,7 @@ export default function NFCUploadScanner(props: NFCUploadScannerProps) {
         </View>
     ) : uploadState === 'INPUT_FAILURE' ? (
         <View style={MainStyles.container}>
-            <Text style={MainStyles.subsubtitle}>Invalid Student ID. Please try again. </Text>
+            <Text style={MainStyles.subtitle}>Invalid Student ID. Please try again. </Text>
             <Button title='Try Again' onPress={() => setUploadState('TAG_SCAN')} />
         </View>
     ) : (

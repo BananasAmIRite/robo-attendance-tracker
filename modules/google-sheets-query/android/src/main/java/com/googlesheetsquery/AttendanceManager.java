@@ -26,11 +26,11 @@ import java.util.List;
 
 public class AttendanceManager {
 
-    private AttendanceDatabase attendanceDatabase;
+    private final AttendanceDatabase attendanceDatabase;
 
-    private AttendanceDao attendanceDao;
+    private final AttendanceDao attendanceDao;
 
-    private Mode mode = Mode.OFFLINE;
+    private RetrievalMode mode = RetrievalMode.OFFLINE;
 
     public AttendanceManager(Context context) {
         attendanceDatabase = Room.databaseBuilder(context, AttendanceDatabase.class, "attendance-db").build();
@@ -40,7 +40,8 @@ public class AttendanceManager {
 
     public void postAttendanceEntry(Sheets service, String sheetId, String sheetRange, String studentId, String date, String time) {
 
-        if (mode == Mode.ONLINE) {
+        if (mode == RetrievalMode.ONLINE) {
+            // online mode, push data normally to google sheets api
             List<List<Object>> values = Arrays.asList(
                     Arrays.asList(studentId, date, time)
             );
@@ -53,22 +54,24 @@ public class AttendanceManager {
                         .execute();
 
             } catch (IOException err) {
-
+                // something's wrong and our request failed. switch to offline mode and rerun post request
                 System.out.println("Error occurred. Switching to offline mode");
                 err.printStackTrace();
-                this.mode = Mode.OFFLINE;
+                this.mode = RetrievalMode.OFFLINE;
                 postAttendanceEntry(service, sheetId, sheetRange, studentId, date, time);
                 return;
             }
 
             System.out.println("Attendance entry appended.");
         } else {
+            // offline mode, add the entry to local database cache for future use
             addCacheEntry(studentId, date, time);
             System.out.println("Attendance entry appended to cache. ");
         }
 
     }
 
+    // dedicated method to force push attendance entry to online source regardless of retrieval mode
     private void postOnlineAttendanceEntry(Sheets service, String sheetId, String sheetRange, String studentId, String date, String time) throws IOException {
         List<List<Object>> values = Arrays.asList(
                 Arrays.asList(studentId, date, time)
@@ -76,14 +79,15 @@ public class AttendanceManager {
 
         ValueRange body = new ValueRange().setValues(values);
 
-            service.spreadsheets().values().append(sheetId, sheetRange, body)
-                    .setValueInputOption("RAW")
-                    .execute();
+        service.spreadsheets().values().append(sheetId, sheetRange, body)
+                .setValueInputOption("RAW")
+                .execute();
     }
 
     public List<AttendanceEntry> getAttendanceEntries(Sheets service, String sheetId, String sheetRange, String studentId) {
 
-        if (this.mode == Mode.ONLINE) {
+        // only performs if we're online
+        if (this.mode == RetrievalMode.ONLINE) {
             ValueRange response = null;
 
             try {
@@ -91,9 +95,10 @@ public class AttendanceManager {
                         .get(sheetId, sheetRange)
                         .execute();
             } catch (IOException err) {
-                // maybe issues? switch to offline mode
-                this.mode = Mode.OFFLINE;
-                System.out.println(err);
+                // maybe issues? switch to offline mode and return empty array
+                this.mode = RetrievalMode.OFFLINE;
+                err.printStackTrace();
+                return new ArrayList<>();
             }
             List<List<Object>> values = response.getValues();
             List<AttendanceEntry> attendanceEntries = new ArrayList<>();
@@ -145,23 +150,21 @@ public class AttendanceManager {
     }
 
     private void clearAttendanceCache() {
-        AttendanceDatabase.databaseWriteExecutor.execute(() -> {
-            attendanceDao.deleteAll();
-        });
+        AttendanceDatabase.databaseWriteExecutor.execute(attendanceDao::deleteAll);
     }
 
-    public void setMode(Mode mode) {
+    public void setMode(RetrievalMode mode) {
         this.mode = mode;
     }
 
-    public Mode getMode() {
+    public RetrievalMode getMode() {
         return mode;
     }
 
-    public class AttendanceEntry {
-        private String studentId;
-        private String date;
-        private String time;
+    public static class AttendanceEntry {
+        private final String studentId;
+        private final String date;
+        private final String time;
 
         public AttendanceEntry(String studentId, String date, String time) {
             this.studentId = studentId;
@@ -194,10 +197,5 @@ public class AttendanceManager {
             entryMap.putString("datetime", dateTime.format(DateTimeFormatter.ISO_DATE_TIME));
             return entryMap;
         }
-    }
-
-    public enum Mode {
-        ONLINE,
-        OFFLINE
     }
 }
