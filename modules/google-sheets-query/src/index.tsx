@@ -78,6 +78,10 @@ export function getAttendanceCache(): Promise<AttendanceEntry[]> {
     return GoogleSheetsQuery.getAttendanceCache();
 }
 
+export function clearAttendanceCache(): Promise<void> {
+    return GoogleSheetsQuery.clearAttendanceCache();
+}
+
 // student info
 
 export function getStudentInfo(sheetId: string, sheetRange: string, studentId: string): Promise<StudentInfo | null> {

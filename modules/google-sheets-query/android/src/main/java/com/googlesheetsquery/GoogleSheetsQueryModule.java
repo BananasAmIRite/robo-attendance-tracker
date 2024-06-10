@@ -257,6 +257,12 @@ public class GoogleSheetsQueryModule extends ReactContextBaseJavaModule {
     promise.resolve(arr);
   }
 
+  @ReactMethod
+  public void clearAttendanceCache(Promise promise) {
+    attendanceManager.clearAttendanceCache(); 
+    promise.resolve(null); 
+  }
+
 
 
   @ReactMethod

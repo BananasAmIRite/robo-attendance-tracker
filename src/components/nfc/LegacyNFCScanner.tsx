@@ -4,7 +4,7 @@ import nfcManager, { NfcEvents, NfcTech, TagEvent } from 'react-native-nfc-manag
 import { MainStyles } from '../../styles/styles';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
-nfcManager.start();
+// nfcManager.start();
 
 export type NFCScannerState = 'OFF' | 'SCANNING';
 export interface NFCScannerProps {

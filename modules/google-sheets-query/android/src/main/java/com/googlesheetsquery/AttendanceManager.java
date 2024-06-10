@@ -138,6 +138,7 @@ public class AttendanceManager {
         clearAttendanceCache();
     }
 
+
     private void addCacheEntry(String studentId, String date, String time) {
         Attendance attd = new Attendance(studentId, date, time);
         AttendanceDatabase.databaseWriteExecutor.execute(() -> {
@@ -149,7 +150,7 @@ public class AttendanceManager {
         return attendanceDao.getAllAttendance();
     }
 
-    private void clearAttendanceCache() {
+    public void clearAttendanceCache() {
         AttendanceDatabase.databaseWriteExecutor.execute(attendanceDao::deleteAll);
     }
 

@@ -1,7 +1,7 @@
-import { Button, View, Text, TextInput, StyleSheet, Switch } from 'react-native';
+import { Button, View, Text, TextInput, StyleSheet, Switch, ScrollView } from 'react-native';
 import { getStudentInfo, signIn, signOut } from 'react-native-google-sheets-query';
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { oauthContext } from '../../App';
+import { OAuthContext } from '../context/OAuthContext';
 import { MainStyles } from '../styles/styles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SwitchSelector from 'react-native-switch-selector';
@@ -18,7 +18,7 @@ export const STORE_KEYS = {
 export type ScanType = 'NFC' | 'CAMERA';
 
 export default function ConfigureScreen() {
-    const userData = useContext<string | null>(oauthContext);
+    const userData = useContext<string | null>(OAuthContext);
     const [userSheetId, setUserSheetId] = useState('');
     const [userSheetRange, setUserSheetRange] = useState('');
     const [attendanceId, setAttendanceId] = useState('');
@@ -65,97 +65,99 @@ export default function ConfigureScreen() {
     }, [scanType]);
 
     return (
-        <View
-            style={{
-                padding: '5%',
-            }}
-        >
-            <View style={{ marginTop: 30 }}>
-                <Text style={styles.formLabel}>Authentication</Text>
-                {userData == null ? (
-                    <View>
-                        <Button title='Sign in with Google' onPress={handleSignin}></Button>
-                    </View>
-                ) : (
-                    <>
-                        <Text style={MainStyles.subsubtitle}>You're signed in!</Text>
-                        <Button title='Sign Out' onPress={signOut} />
-                    </>
-                )}
-            </View>
-
-            <View style={{ marginTop: 30 }}>
-                <Text style={styles.formLabel}>Sheet Configuration</Text>
-                <View
-                    style={{
-                        padding: '5%',
-                        paddingTop: '2%',
-                    }}
-                >
-                    <View style={styles.inlineView}>
-                        <TextInput
-                            placeholder='User Sheet Id'
-                            onChangeText={setUserSheetId}
-                            value={userSheetId}
-                            style={{ ...MainStyles.input, width: '60%' }}
-                        />
-                        <TextInput
-                            placeholder='Range'
-                            onChangeText={setUserSheetRange}
-                            value={userSheetRange}
-                            style={{ ...MainStyles.input, width: '40%' }}
-                        />
-                    </View>
-                    <View style={styles.inlineView}>
-                        <TextInput
-                            placeholder='Attendance Sheet Id'
-                            onChangeText={setAttendanceId}
-                            value={attendanceId}
-                            style={{ ...MainStyles.input, width: '60%' }}
-                        />
-                        <TextInput
-                            placeholder='Range'
-                            onChangeText={setAttdSheetRange}
-                            value={attdSheetRange}
-                            style={{ ...MainStyles.input, width: '40%' }}
-                        />
-                    </View>
+        <ScrollView>
+            <View
+                style={{
+                    padding: '5%',
+                }}
+            >
+                <View style={{ marginTop: 30 }}>
+                    <Text style={styles.formLabel}>Authentication</Text>
+                    {userData == null ? (
+                        <View>
+                            <Button title='Sign in with Google' onPress={handleSignin}></Button>
+                        </View>
+                    ) : (
+                        <>
+                            <Text style={MainStyles.subsubtitle}>You're signed in!</Text>
+                            <Button title='Sign Out' onPress={signOut} />
+                        </>
+                    )}
                 </View>
-            </View>
-            <View style={{ marginTop: 30 }}>
-                <Text style={styles.formLabel}>Scanning</Text>
-                <View
-                    style={{
-                        padding: '5%',
-                        paddingTop: '2%',
-                    }}
-                >
-                    <SwitchSelector
-                        ref={switchRef}
-                        options={[
-                            {
-                                label: 'NFC',
-                                value: 'NFC',
-                            },
-                            {
-                                label: 'Camera',
-                                value: 'CAMERA',
-                            },
-                        ]}
-                        onPress={(val) => {
-                            setScanType(val);
+
+                <View style={{ marginTop: 30 }}>
+                    <Text style={styles.formLabel}>Sheet Configuration</Text>
+                    <View
+                        style={{
+                            padding: '5%',
+                            paddingTop: '2%',
                         }}
-                        textColor={'#2196F3'}
-                        selectedColor={'white'}
-                        buttonColor={'#2196F3'}
-                        borderColor={'#2196F3'}
-                        disableValueChangeOnPress
-                    />
+                    >
+                        <View style={styles.inlineView}>
+                            <TextInput
+                                placeholder='User Sheet Id'
+                                onChangeText={setUserSheetId}
+                                value={userSheetId}
+                                style={{ ...MainStyles.input, width: '60%' }}
+                            />
+                            <TextInput
+                                placeholder='Range'
+                                onChangeText={setUserSheetRange}
+                                value={userSheetRange}
+                                style={{ ...MainStyles.input, width: '40%' }}
+                            />
+                        </View>
+                        <View style={styles.inlineView}>
+                            <TextInput
+                                placeholder='Attendance Sheet Id'
+                                onChangeText={setAttendanceId}
+                                value={attendanceId}
+                                style={{ ...MainStyles.input, width: '60%' }}
+                            />
+                            <TextInput
+                                placeholder='Range'
+                                onChangeText={setAttdSheetRange}
+                                value={attdSheetRange}
+                                style={{ ...MainStyles.input, width: '40%' }}
+                            />
+                        </View>
+                    </View>
                 </View>
-            </View>
+                <View style={{ marginTop: 30 }}>
+                    <Text style={styles.formLabel}>Scanning</Text>
+                    <View
+                        style={{
+                            padding: '5%',
+                            paddingTop: '2%',
+                        }}
+                    >
+                        <SwitchSelector
+                            ref={switchRef}
+                            options={[
+                                {
+                                    label: 'NFC',
+                                    value: 'NFC',
+                                },
+                                {
+                                    label: 'Camera',
+                                    value: 'CAMERA',
+                                },
+                            ]}
+                            onPress={(val) => {
+                                setScanType(val);
+                            }}
+                            textColor={'#2196F3'}
+                            selectedColor={'white'}
+                            buttonColor={'#2196F3'}
+                            borderColor={'#2196F3'}
+                            disableValueChangeOnPress
+                        />
+                    </View>
+                </View>
 
-            <Button title='Save Configuration' onPress={handleSave} />
-        </View>
+                <Button title='Save Configuration' onPress={handleSave} />
+            </View>
+        </ScrollView>
     );
 }
 

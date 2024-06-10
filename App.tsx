@@ -9,12 +9,12 @@ import React, { createContext, useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import CacheScreen from './src/screens/CacheScreen';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import { OAuthContext } from './src/context/OAuthContext';
 
 LogBox.ignoreLogs(['Require cycle:']);
 
 const Tab = createBottomTabNavigator();
-
-export const oauthContext = createContext<string | null>(null);
 
 export default function App() {
     const [userData, setUserData] = useState<string | null>(null);
@@ -29,10 +29,11 @@ export default function App() {
 
             setUserData(data);
         });
+        ScreenOrientation.unlockAsync();
     }, []);
 
     return (
-        <oauthContext.Provider value={userData}>
+        <OAuthContext.Provider value={userData}>
             <NavigationContainer>
                 <Tab.Navigator
                     detachInactiveScreens
@@ -78,6 +79,6 @@ export default function App() {
                     />
                 </Tab.Navigator>
             </NavigationContainer>
-        </oauthContext.Provider>
+        </OAuthContext.Provider>
     );
 }

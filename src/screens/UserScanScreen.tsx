@@ -1,22 +1,16 @@
 import { useContext, useEffect, useState } from 'react';
-import { StyleSheet, View, Text, ToastAndroid } from 'react-native';
+import { StyleSheet, View, Text } from 'react-native';
 import CameraScanner from '../components/camera/CameraScanner';
 import ErrorBanner from '../components/ErrorBanner';
 import UserProfile from '../components/UserProfile';
 import LoadingIndicator from '../components/LoadingIndicator';
-import {
-    StudentInfo,
-    getDailyAttendanceEntry,
-    getStudentInfo,
-    loadStudentInfo,
-    postAttendanceEntry,
-} from 'react-native-google-sheets-query';
+import { StudentInfo, getStudentInfo, loadStudentInfo, postAttendanceEntry } from 'react-native-google-sheets-query';
 import { MainStyles } from '../styles/styles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORE_KEYS, ScanType } from './ConfigureScreen';
-import { oauthContext } from '../../App';
 import NFCUploadScanner from '../components/nfc/NFCUploadScanner';
 import Snackbar from 'react-native-snackbar';
+import { OAuthContext } from '../context/OAuthContext';
 
 export interface DisplayedStudentInfo extends StudentInfo {
     scanTime: string;
@@ -29,7 +23,7 @@ export default function UserScanScreen() {
     const [data, setData] = useState('');
     const [lastId, setLastId] = useState('');
     const [displayedStudentInfo, setStudentInfo] = useState<DisplayedStudentInfo | null>(null);
-    const userInfo = useContext(oauthContext);
+    const userInfo = useContext(OAuthContext);
 
     const [scanType, setScanType] = useState<ScanType>('CAMERA');
 
@@ -99,10 +93,7 @@ export default function UserScanScreen() {
         setErrorMessage('');
     };
 
-    const validateId = (id: string): boolean => {
-        // TODO: validate that it's a valid student id
-        return true;
-    };
+    const validateId = (id: string): boolean => !isNaN(parseInt(id));
 
     useEffect(() => {
         (async () => {
