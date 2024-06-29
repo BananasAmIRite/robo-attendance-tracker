@@ -1,0 +1,9 @@
+{
+  "name": "react-native-acs-nfc",
+  "version": "0.0.0",
+  "description": "nfc module with support for ACS readers",
+  "main": "src/index",
+  "author": " <> ()",
+  "license": "UNLICENSED",
+  "homepage": "#readme"
+}

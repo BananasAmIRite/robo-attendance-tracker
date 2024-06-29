@@ -1,18 +1,15 @@
-// import { StatusBar } from 'expo-status-bar';
-import { DeviceEventEmitter, LogBox, StyleSheet } from 'react-native';
+import { DeviceEventEmitter } from 'react-native';
 import UserScanScreen from './src/screens/UserScanScreen';
 import { NavigationContainer } from '@react-navigation/native';
 import ConfigureScreen from './src/screens/ConfigureScreen';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { getUserInformation } from 'react-native-google-sheets-query';
-import React, { createContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import CacheScreen from './src/screens/CacheScreen';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { OAuthContext } from './src/context/OAuthContext';
-
-LogBox.ignoreLogs(['Require cycle:']);
 
 const Tab = createBottomTabNavigator();
 

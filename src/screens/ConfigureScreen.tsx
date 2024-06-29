@@ -32,7 +32,6 @@ export default function ConfigureScreen() {
     };
 
     const handleSave = async () => {
-        // TODO: implement
         AsyncStorage.setItem(STORE_KEYS.KEY_USER_SHEET_ID, userSheetId);
         AsyncStorage.setItem(STORE_KEYS.KEY_USER_SHEET_RANGE, userSheetRange);
         AsyncStorage.setItem(STORE_KEYS.KEY_USER_ATTD_ID, attendanceId);
@@ -75,7 +74,7 @@ export default function ConfigureScreen() {
                     <Text style={styles.formLabel}>Authentication</Text>
                     {userData == null ? (
                         <View>
-                            <Button title='Sign in with Google' onPress={handleSignin}></Button>
+                            <Button title='Sign in with Google' onPress={handleSignin} />
                         </View>
                     ) : (
                         <>

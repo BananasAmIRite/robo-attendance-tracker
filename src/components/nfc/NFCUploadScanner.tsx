@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { TagEvent } from 'react-native-nfc-manager';
-import NFCScanner from './NFCScanner';
 import { TextInput, View, Text, Button } from 'react-native';
 import { MainStyles } from '../../styles/styles';
 import { bindStudentId, getStudentInfo, getStudentInfoByNFCId } from 'react-native-google-sheets-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORE_KEYS } from '../../screens/ConfigureScreen';
 import LegacyNFCScanner from './LegacyNFCScanner';
+import AcsNFCScanner from './AcsNFCScanner';
 
 export interface NFCUploadScannerProps {
     handleCodeScan: (res: string) => void;
@@ -74,7 +74,7 @@ export default function NFCUploadScanner(props: NFCUploadScannerProps) {
         </View>
     ) : uploadState === 'INPUT_FAILURE' ? (
         <View style={MainStyles.container}>
-            <Text style={MainStyles.subtitle}>Invalid Student ID. Please try again. </Text>
+            <Text style={MainStyles.subtitle}>Could not verify student ID. Please try again. </Text>
             <Button title='Try Again' onPress={() => setUploadState('TAG_SCAN')} />
         </View>
     ) : (

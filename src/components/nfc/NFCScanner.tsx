@@ -38,7 +38,7 @@ export default function NFCScanner(props: NFCScannerProps) {
             readNfc().then(
                 (tag) => props.handleTagScan(tag),
                 (err) => {
-                    console.log(err);
+                    console.log(`Error when reading NFC: `, err);
                 }
             );
 

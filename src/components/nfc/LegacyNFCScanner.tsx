@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text, Button } from 'react-native';
-import nfcManager, { NfcEvents, NfcTech, TagEvent } from 'react-native-nfc-manager';
+import nfcManager, { NfcEvents, TagEvent } from 'react-native-nfc-manager';
 import { MainStyles } from '../../styles/styles';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
@@ -15,8 +15,6 @@ export default function LegacyNFCScanner(props: NFCScannerProps) {
     const [scannerState, setScannerState] = useState<NFCScannerState>('OFF');
 
     const cleanUp = () => {
-        console.log('cleaning up');
-
         nfcManager.setEventListener(NfcEvents.DiscoverTag, null);
         nfcManager.setEventListener(NfcEvents.SessionClosed, null);
     };
@@ -32,7 +30,6 @@ export default function LegacyNFCScanner(props: NFCScannerProps) {
         nfcManager.setEventListener(NfcEvents.SessionClosed, () => {
             cleanUp();
         });
-        console.log('registering');
 
         nfcManager.registerTagEvent();
     };
@@ -45,8 +42,6 @@ export default function LegacyNFCScanner(props: NFCScannerProps) {
         if (scannerState === 'SCANNING') addNfcListeners();
 
         return () => {
-            console.log('unregistering');
-
             nfcManager.unregisterTagEvent();
             cleanUp();
         };
@@ -58,6 +53,15 @@ export default function LegacyNFCScanner(props: NFCScannerProps) {
                 <>
                     <MaterialCommunityIcons name='card-search-outline' size={64} color='black' />
                     <Text style={MainStyles.subtitle}>Scanning for card...</Text>
+                    {/* <Button
+                        title='Mock NFC'
+                        onPress={() =>
+                            onNFCRead({
+                                ndefMessage: [],
+                                id: 'ABCDEFG',
+                            })
+                        }
+                    /> */}
                 </>
             ) : //  : scannerState === 'SCANNING_DONE' ? (
             //     <>

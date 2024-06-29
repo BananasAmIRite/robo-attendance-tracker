@@ -1,6 +1,4 @@
-import { useEffect, useReducer, useRef } from 'react';
-import { View, Text, DimensionValue, StyleProp, ViewStyle, Animated } from 'react-native';
-import { transform } from 'typescript';
+import { View, Text, DimensionValue, StyleProp, ViewStyle } from 'react-native';
 
 export interface ErrorBannerProps {
     minHeight?: DimensionValue;

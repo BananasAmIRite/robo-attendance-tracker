@@ -1,7 +1,6 @@
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import CameraScanner from '../components/camera/CameraScanner';
-import ErrorBanner from '../components/ErrorBanner';
 import UserProfile from '../components/UserProfile';
 import LoadingIndicator from '../components/LoadingIndicator';
 import { StudentInfo, getStudentInfo, loadStudentInfo, postAttendanceEntry } from 'react-native-google-sheets-query';
@@ -10,24 +9,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORE_KEYS, ScanType } from './ConfigureScreen';
 import NFCUploadScanner from '../components/nfc/NFCUploadScanner';
 import Snackbar from 'react-native-snackbar';
-import { OAuthContext } from '../context/OAuthContext';
 
 export interface DisplayedStudentInfo extends StudentInfo {
     scanTime: string;
 }
 
 export default function UserScanScreen() {
-    const [errorMessage, setErrorMessage] = useState('');
+    // const [errorMessage, setErrorMessage] = useState('');
 
     const [displayUser, setDisplayUser] = useState<true | false | 'LOADING'>(false);
     const [data, setData] = useState('');
     const [lastId, setLastId] = useState('');
     const [displayedStudentInfo, setStudentInfo] = useState<DisplayedStudentInfo | null>(null);
-    const userInfo = useContext(OAuthContext);
 
     const [scanType, setScanType] = useState<ScanType>('CAMERA');
-
-    // const [scanSound, setScanSound] = useState<Sound>();
 
     const formatDate = (date: Date) => {
         return `${date.getHours() === 12 || date.getHours() === 0 ? 12 : date.getHours() % 12}:${formatTwoDigits(
@@ -90,7 +85,7 @@ export default function UserScanScreen() {
             }, 2000);
         });
 
-        setErrorMessage('');
+        // setErrorMessage('');
     };
 
     const validateId = (id: string): boolean => !isNaN(parseInt(id));
@@ -108,7 +103,7 @@ export default function UserScanScreen() {
 
     return (
         <View style={MainStyles.container}>
-            <ErrorBanner
+            {/* <ErrorBanner
                 message={errorMessage}
                 show={errorMessage !== ''}
                 minHeight={'5%'}
@@ -122,7 +117,7 @@ export default function UserScanScreen() {
                     overflow: 'hidden',
                     zIndex: 1000,
                 }}
-            />
+            /> */}
 
             {scanType === 'CAMERA' ? (
                 <CameraScanner
